@@ -1,13 +1,20 @@
 <script>
-  import { getContext, createEventDispatcher, onMount } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
   import MonacoEditor from "../MonacoEditor.svelte";
   import Message from "../Message.svelte";
 
-  const { bundle, selected, handle_change } = getContext("REPL");
-
+  export let bundle;
+  export let selected;
   let editor;
   const dispatch = createEventDispatcher();
+
   onMount(() => dispatch("ready"));
+
+  function handleEditorChange(event) {
+    dispatch("didContentChange", {
+      value: event.detail.value,
+    });
+  }
 
   export function register_editor() {
     return editor;
@@ -43,22 +50,22 @@
 
 <div class="editor-wrapper">
   <div class="editor notranslate" translate="no">
-    <MonacoEditor bind:this={editor} on:didContentChange={handle_change} />
+    <MonacoEditor bind:this={editor} on:didContentChange={handleEditorChange} />
   </div>
 
   <div class="info">
-    {#if $bundle}
-      {#if $bundle.error}
+    {#if bundle}
+      {#if bundle.error}
         <Message
           kind="error"
-          details={$bundle.error}
-          filename="{$selected.name}.{$selected.type}" />
-      {:else if $bundle.warnings.length > 0}
-        {#each $bundle.warnings as warning}
+          details={bundle.error}
+          filename="{selected.name}.{selected.type}" />
+      {:else if bundle.warnings.length > 0}
+        {#each bundle.warnings as warning}
           <Message
             kind="warning"
             details={warning}
-            filename="{$selected.name}.{$selected.type}" />
+            filename="{selected.name}.{selected.type}" />
         {/each}
       {/if}
     {/if}

@@ -122,6 +122,29 @@
     if (result && token === current_token) bundle.set(result);
   }
 
+  function handleContentChange(event) {
+    selected.update((component) => {
+      // TODO this is a bit hacky — we're relying on mutability
+      // so that updating components works... might be better
+      // if a) components had unique IDs, b) we tracked selected
+      // *index* rather than component, and c) `selected` was
+      // derived from `components` and `index`
+      component.source = event.detail.value;
+      return component;
+    });
+
+    components.update((c) => c);
+
+    // recompile selected component
+    output.update($selected, $compile_options);
+
+    rebundle();
+
+    dispatch("change", {
+      components: $components,
+    });
+  }
+
   setContext("REPL", {
     components,
     selected,
@@ -145,29 +168,6 @@
     handle_delete: (component) => {
       console.log(component);
       module_editor.deleteModel(component);
-    },
-
-    handle_change: (event) => {
-      selected.update((component) => {
-        // TODO this is a bit hacky — we're relying on mutability
-        // so that updating components works... might be better
-        // if a) components had unique IDs, b) we tracked selected
-        // *index* rather than component, and c) `selected` was
-        // derived from `components` and `index`
-        component.source = event.detail.value;
-        return component;
-      });
-
-      components.update((c) => c);
-
-      // recompile selected component
-      output.update($selected, $compile_options);
-
-      rebundle();
-
-      dispatch("change", {
-        components: $components,
-      });
     },
 
     request_focus() {
@@ -246,7 +246,12 @@
     {fixed}>
     <section slot="a">
       <ComponentSelector {handle_select} />
-      <ModuleEditor bind:this={input} on:ready={register_module_editor} />
+      <ModuleEditor
+        bind:this={input}
+        on:ready={register_module_editor}
+        on:didContentChange={handleContentChange}
+        bundle={$bundle}
+        selected={$selected} />
     </section>
 
     <section slot="b" style="height: 100%;">
