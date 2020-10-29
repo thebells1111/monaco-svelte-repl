@@ -1,26 +1,16 @@
 <script>
-  import { getContext, onMount } from "svelte";
+  import { getContext, createEventDispatcher, onMount } from "svelte";
   import MonacoEditor from "../MonacoEditor.svelte";
   import Message from "../Message.svelte";
 
-  const {
-    bundle,
-    selected,
-    handle_change,
-    register_module_editor,
-  } = getContext("REPL");
+  const { bundle, selected, handle_change } = getContext("REPL");
 
   let editor;
-  onMount(() => {
-    register_module_editor(editor);
-  });
+  const dispatch = createEventDispatcher();
+  onMount(() => dispatch("ready"));
 
-  export function focus() {
-    editor.focus();
-  }
-
-  export function layout() {
-    editor.layout();
+  export function register_editor() {
+    return editor;
   }
 </script>
 

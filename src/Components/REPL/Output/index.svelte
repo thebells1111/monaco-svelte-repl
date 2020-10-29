@@ -1,5 +1,5 @@
 <script>
-  import { getContext } from "svelte";
+  import { createEventDispatcher, onMount } from "svelte";
   import marked from "marked";
   import Viewer from "./Viewer.svelte";
   import PaneWithPanel from "./PaneWithPanel.svelte";
@@ -8,7 +8,9 @@
   import MonacoEditor from "../MonacoEditor.svelte";
   import { is_browser } from "../env.js";
 
-  const { register_output } = getContext("REPL");
+  const dispatch = createEventDispatcher();
+
+  onMount(() => dispatch("ready"));
 
   export let svelteUrl;
   export let workersUrl;
@@ -19,53 +21,49 @@
   export let injectedJS;
   export let injectedCSS;
 
-  register_output({
-    set: async (selected, options) => {
-      selected_type = selected.type;
+  export async function set(selected, options) {
+    selected_type = selected.type;
 
-      if (selected.type === "js" || selected.type === "json") {
-        js_editor.setValue(`/* Select a component to see its compiled code */`);
-        css_editor.setValue(
-          `/* Select a component to see its compiled code */`
-        );
+    if (selected.type === "js" || selected.type === "json") {
+      js_editor.setValue(`/* Select a component to see its compiled code */`);
+      css_editor.setValue(`/* Select a component to see its compiled code */`);
 
-        return;
-      }
+      return;
+    }
 
-      if (selected.type === "md") {
-        markdown = marked(selected.source);
-        return;
-      }
+    if (selected.type === "md") {
+      markdown = marked(selected.source);
+      return;
+    }
 
-      const compiled = await compiler.compile(selected, options);
-      if (!js_editor) return; // unmounted
+    const compiled = await compiler.compile(selected, options);
+    if (!js_editor) return; // unmounted
 
-      if (!jsModel) {
-        jsModel = js_editor.createNewModel(compiled.js, "javascript");
-        cssModel = css_editor.createNewModel(compiled.css, "css");
-        js_editor.setNewModel(jsModel);
-        css_editor.setNewModel(cssModel);
-      } else {
-        js_editor.setValue(compiled.js);
-        css_editor.setValue(compiled.css);
-      }
-    },
-
-    update: async (selected, options) => {
-      if (selected.type === "js" || selected.type === "json") return;
-
-      if (selected.type === "md") {
-        markdown = marked(selected.source);
-        return;
-      }
-
-      const compiled = await compiler.compile(selected, options);
-      if (!js_editor) return; // unmounted
-
+    if (!jsModel) {
+      jsModel = js_editor.createNewModel(compiled.js, "javascript");
+      cssModel = css_editor.createNewModel(compiled.css, "css");
+      js_editor.setNewModel(jsModel);
+      css_editor.setNewModel(cssModel);
+    } else {
       js_editor.setValue(compiled.js);
       css_editor.setValue(compiled.css);
-    },
-  });
+    }
+  }
+
+  export async function update(selected, options) {
+    if (selected.type === "js" || selected.type === "json") return;
+
+    if (selected.type === "md") {
+      markdown = marked(selected.source);
+      return;
+    }
+
+    const compiled = await compiler.compile(selected, options);
+    if (!js_editor) return; // unmounted
+
+    js_editor.setValue(compiled.js);
+    css_editor.setValue(compiled.css);
+  }
 
   const compiler = is_browser && new Compiler(workersUrl, svelteUrl);
 

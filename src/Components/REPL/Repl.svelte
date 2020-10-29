@@ -27,7 +27,16 @@
   }
 
   // this gets called by the parent component on initialization, typically using onMount
-  export async function set(data) {
+
+  export function initialize(data) {
+    if (output_ready && module_editor_ready) {
+      set(data);
+    } else {
+      setTimeout(initialize.bind(null, data), 0);
+    }
+  }
+
+  function set(data) {
     //this creates a model and adds it to the component object for the initial components
     data.components.forEach((component) => {
       component.model = module_editor.createNewModel(
@@ -40,9 +49,6 @@
     selected.set(data.components[0]);
 
     rebundle();
-
-    await module_editor_ready;
-    await output_ready;
 
     injectedCSS = data.css || "";
     output.set($selected, $compile_options);
@@ -98,9 +104,16 @@
     legacy: false,
   });
 
-  let module_editor;
-  let input_model;
+  let input;
   let output;
+  let module_editor;
+  let output_ready = false;
+  let module_editor_ready = false;
+
+  function register_module_editor() {
+    module_editor = input.register_editor();
+    module_editor_ready = true;
+  }
 
   let current_token;
   async function rebundle() {
@@ -108,15 +121,6 @@
     const result = await bundler.bundle($components);
     if (result && token === current_token) bundle.set(result);
   }
-
-  // TODO this is a horrible kludge, written in a panic. fix it
-  let fulfil_module_editor_ready;
-  let module_editor_ready = new Promise(
-    (f) => (fulfil_module_editor_ready = f)
-  );
-
-  let fulfil_output_ready;
-  let output_ready = new Promise((f) => (fulfil_output_ready = f));
 
   setContext("REPL", {
     components,
@@ -166,16 +170,6 @@
       });
     },
 
-    register_module_editor(editor) {
-      module_editor = editor;
-      fulfil_module_editor_ready();
-    },
-
-    register_output(handlers) {
-      output = handlers;
-      fulfil_output_ready();
-    },
-
     request_focus() {
       module_editor.focus();
     },
@@ -198,7 +192,6 @@
     return `${component.name}.${component.type}`;
   }
 
-  let input;
   let status = null;
 
   const bundler =
@@ -253,11 +246,13 @@
     {fixed}>
     <section slot="a">
       <ComponentSelector {handle_select} />
-      <ModuleEditor bind:this={input} />
+      <ModuleEditor bind:this={input} on:ready={register_module_editor} />
     </section>
 
     <section slot="b" style="height: 100%;">
       <Output
+        bind:this={output}
+        on:ready={() => (output_ready = true)}
         {svelteUrl}
         {workersUrl}
         {status}

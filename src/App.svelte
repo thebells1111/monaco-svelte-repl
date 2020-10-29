@@ -27,7 +27,7 @@
 `;
 
   onMount(() => {
-    repl.set({
+    repl.initialize({
       components: [
         {
           type: "svelte",
