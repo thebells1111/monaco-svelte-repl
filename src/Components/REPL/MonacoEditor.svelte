@@ -53,17 +53,12 @@
       scrollBeyondLastLine: mode ? false : true,
       readOnly: readonly,
       wordWrap: "on",
+      automaticLayout: true,
       minimap: {
         enabled: false,
       },
     });
   });
-
-  let h;
-  let w;
-  $: if (w && h && editor) {
-    editor.layout();
-  }
 </script>
 
 <style>
@@ -73,8 +68,4 @@
   }
 </style>
 
-<div
-  bind:clientWidth={w}
-  bind:clientHeight={h}
-  id="container"
-  bind:this={editorDOM} />
+<div id="container" bind:this={editorDOM} />
